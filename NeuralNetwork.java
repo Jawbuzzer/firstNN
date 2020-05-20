@@ -330,14 +330,10 @@ public class NeuralNetwork {
 		
 	}
 	
-	/**
-	 * 
-	 * @param input The number to be taken taken through the function.
-	 * @return Returns the value of the input taken through the sigmoid-funtion (a number between 0 and 1).
-	 */
-	private float sigmoid(float input) {
+	private float sigmoid(float input) {	//	Returns the value of the input taken through the sigmoid-funtion (a number between 0 and 1)
 		
 		return 1 / ((float)Math.exp(-input) + 1);
 		
 	}
+	
 }

@@ -21,14 +21,14 @@ public class NeuralNetwork {
 	private float[][] neuronDerivatives;	//	The derivatives of the error with respect to each neuron
 	private float[][] biasDerivatives;
 	private float[][][] weightDerivatives;
-	public float[] targetOut;
+	public float[] targetOut;	//	The desired output given any training example
 	
 	private float learningRate;	//	How big 'steps' the network takes during training
 	
 	//	Methods
 	
 	/**
-	 * Defines various structures of the network.
+	 * This constructor initializes various members of the network.
 	 * @param layers An array containing the length of each layer in the network.
 	 */
 	NeuralNetwork(int[] layers) {	//	Constructor
@@ -61,7 +61,7 @@ public class NeuralNetwork {
 		
 		for(int i = 0; i < layerCount; i++) {	// Iterates through every layer
 			
-			neurons[i] = new float[layers[i]];
+			neurons[i] = new float[layers[i]];	//	Initializes an array the size of the current layer
 			
 		}
 		
@@ -69,9 +69,9 @@ public class NeuralNetwork {
 	
 	private void initSums() {
 		
-		for(int i = 0; i < layerCount - 1; i++) {
+		for(int i = 0; i < layerCount - 1; i++) {	//	iterates through every layer except for the input layer
 			
-			sums[i] = new float[layers[i]];
+			sums[i] = new float[layers[i + 1]];
 			
 		}
 		
@@ -81,11 +81,11 @@ public class NeuralNetwork {
 		
 		Random rnd = new Random();
 		
-		for(int i = 0; i < layerCount - 1; i++) {	//	iterates through every layer except for the input layer
+		for(int i = 0; i < layerCount - 1; i++) {	
 			
-			int layerSize = layers[i + 1];	//	Number of neurons in the current layer
-			biases[i] = new float[layerSize];
-			for(int j = 0; j < layerSize; j++) {	//	Iterates through every neuron in the current layer
+			biases[i] = new float[layers[i + 1]];
+			
+			for(int j = 0; j < layers[i + 1]; j++) {	//	Iterates through every neuron in the current layer
 				
 				biases[i][j] = 16 * rnd.nextFloat() - 8; // Assigns the given bias a value between -8 and 8
 				
@@ -101,13 +101,13 @@ public class NeuralNetwork {
 		
 		for(int i = 0; i < layerCount - 1; i++) {
 			
-			int layerSize = layers[i + 1];
-			int layerSizePrev = layers[i];	//	Number of neurons in the previous layer
-			weights[i] = new float[layerSize][];
-			for(int j = 0; j < layerSize; j++) {
+			weights[i] = new float[layers[i + 1]][];
+			
+			for(int j = 0; j < layers[i + 1]; j++) {
 				
-				weights[i][j] = new float[layerSizePrev];
-				for(int k = 0; k < layerSizePrev; k++) {	// Iterates through every neuron in the previous layer
+				weights[i][j] = new float[layers[i]];
+				
+				for(int k = 0; k < layers[i]; k++) {	// Iterates through every neuron in the previous layer
 					
 					weights[i][j][k] = 4 * rnd.nextFloat() - 2;	//	Assigns the given weight a value between -2 and 2
 					
@@ -123,7 +123,7 @@ public class NeuralNetwork {
 		
 		for(int i = 0; i < layerCount - 1; i++) {
 			
-			neuronDerivatives[i] = new float[layers[i]];
+			neuronDerivatives[i] = new float[layers[i + 1]];
 			
 		}
 		
@@ -144,6 +144,7 @@ public class NeuralNetwork {
 		for(int i = 0; i < layerCount - 1; i++) {
 			
 			weightDerivatives[i] = new float[layers[i + 1]][];
+			
 			for(int j = 0; j < layers[i + 1]; j++) {
 				
 				weightDerivatives[i][j] = new float[layers[i]];
@@ -153,6 +154,7 @@ public class NeuralNetwork {
 		}
 		
 	}
+	
 	/**
 	 * Accesses the current output of the network.
 	 * @return Returns the values held by the neurons in the output layer.
@@ -162,6 +164,7 @@ public class NeuralNetwork {
 		return neurons[layerCount - 1];
 		
 	}
+	
 	/**
 	 * Takes a set of inputs and feeds them into the network, producing a set of outputs.
 	 * @param inputs A float array with the same length as the input-layer.
@@ -179,9 +182,7 @@ public class NeuralNetwork {
 				
 				float inputSum = 0;	//	The sum of all connections to the given neuron from the previous layer
 				
-				int layerSizePrev = layers[i - 1];
-				
-				for(int k = 0; k < layerSizePrev; k++) {
+				for(int k = 0; k < layers[i - 1]; k++) {
 					
 					inputSum += weights[i - 1][j][k] * neurons[i - 1][k];	//	Adds the value of a weighted connection
 					
@@ -196,6 +197,7 @@ public class NeuralNetwork {
 		}						
 	
 	}
+	
 	/**
 	 * Trains the network on one set of inputs and desired outputs.
 	 * @param inputs The inputs that get fed into the network.
@@ -204,6 +206,7 @@ public class NeuralNetwork {
 	public void train(float[] inputs, float[] targetOut) {
 		
 		feedForward(inputs);
+		
 		for(int i = 0; i < layers[layerCount - 1]; i++) {
 			
 			this.targetOut[i] = targetOut[i];
@@ -221,28 +224,33 @@ public class NeuralNetwork {
 		findHiddenNeuronDerivative();
 		
 	}
+	
 	private void findOutputNeuronDerivative() {	//	Finds all derivatives with respect to output layer neurons
 		
 		for(int i = 0; i < layers[layerCount - 1]; i++) {	//	Iterates through every neuron in the output layer 
 			
+			//	The formula for the derivatives used are from 3Blue1Browns videoseries on the topic of backpropagation: 
+			//	https://www.youtube.com/watch?v=tIeHLnjs5U8&list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi&index=4
 			neuronDerivatives[layerCount - 2][i] = 2 * (neurons[layerCount - 1][i] - targetOut[i]);
 			
 		}
 		
 	}
+	
 	private void findHiddenNeuronDerivative() {	//	Finds all derivatives with respect to hidden layer neurons
 		
-		for(int i = layerCount - 3; i >= 0; i--) {	//	Iterates through every hidden layer
+		for(int i = layerCount - 2; i > 0; i--) {	//	Iterates through every hidden layer
 			
 			for(int j = 0; j < layers[i]; j++) {	//	Iterates through every neuron in the given hidden layer
 				
 				float neuronDerivative = 0;
+				
 				for(int k = 0; k < layers[i + 1]; k++) {	//	Iterates through every neuron in the next layer
-					
-					neuronDerivative += neuronDerivatives[i + 1][k] * sigmoid(sums[i + 1][k]) * (1 - sigmoid(sums[i + 1][k])) * weights[i][k][j];
+			
+					neuronDerivative += neuronDerivatives[i][k] * sigmoid(sums[i][k]) * (1 - sigmoid(sums[i][k])) * weights[i][k][j];
 					
 				}
-				neuronDerivatives[i][j] = neuronDerivative;
+				neuronDerivatives[i - 1][j] = neuronDerivative;
 				
 			}
 			
@@ -282,7 +290,7 @@ public class NeuralNetwork {
 		
 	}
 	
-	private void findDerivatives() {
+	private void findDerivatives() {	//	Runs all derivative-finding methods
 		
 		findNeuronDerivatives();
 		findWeightDerivatives();
@@ -290,7 +298,7 @@ public class NeuralNetwork {
 		
 	}
 	
-	private void tweakWeights() {
+	private void tweakWeights() {	//	Adjusts every weight based on the corresponding derivative
 		
 		for(int i = 0; i < layerCount - 1; i++) {
 			
@@ -308,7 +316,7 @@ public class NeuralNetwork {
 		
 	}
 	
-	private void tweakBiases() {
+	private void tweakBiases() {	//	Adjusts every bias based on the corresponding derivative
 		
 		for(int i = 0; i < layerCount - 1; i++) {
 			
@@ -321,6 +329,7 @@ public class NeuralNetwork {
 		}
 		
 	}
+	
 	/**
 	 * 
 	 * @param input The number to be taken taken through the function.
